@@ -1,0 +1,94 @@
+import time, datetime, webbrowser, pandas, smtplib, shutil, os.path, numpy
+from importlib import reload
+import stockBuys
+#Put names of google sheets here
+sheet1 = 
+sheet2 = 
+sheet3 = 
+sheet4 = 
+sheet5 = 
+sheets = [sheet1, sheet2, sheet3, sheet4, sheet5]
+while True:
+    #Gather date and time data so the program knows when to run
+    timeNow = time.localtime()
+    hour = timeNow.tm_hour
+    minute = timeNow.tm_min
+    day = datetime.datetime.today().weekday()
+    #If the hours and minutes fall in this window run the program
+    if hour == 12 and minute > 25 and day < 5:
+        #EMail that it started
+        sender_address = 
+        receiver_address = 
+        account_password =  
+        subject = "Started Effectively"
+        body = "Background stock program started"
+        smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        smtp_server.login(sender_address, account_password)
+        message = f"Subject: {subject}\n\n{body}"
+        smtp_server.sendmail(sender_address, receiver_address, message)
+        smtp_server.close()
+        #Run stock program
+        reload(stockBuys)
+        time.sleep(1000)
+    #pauses program      
+    boughtedGuys = stockBuys.buyGuysO
+    boughtGuys = boughtedGuys.strip(" ")
+    #boughtGuys = "MSFT;1,1 AAPL;1,2"
+    if hour > 6 and hour < 12:
+#Early processing of string
+        splitGuys = boughtGuys.split()
+        downloadSuccessful = True
+#Open the sheets
+        for k in range(5):
+            webbrowser.open(sheets[k])
+#see if they opened
+            tic = time.time()
+            while not os.path.isfile("/home/pi/Downloads/stockData - Sheet" + str(k+1) + ".csv"):
+                toc = time.time() - tic
+                if toc > 10:
+                    downloadSuccessful = False
+                    break
+                else:
+                    continue
+#if the download was successful process data
+        if downloadSuccessful:
+            stock = "SPY"
+            placeIn = 0
+            sheetNumber = 1
+            currentDataSheet = pandas.read_csv("/home/pi/Downloads/stockData - Sheet" + str(sheetNumber) + ".csv")
+            currentVals = currentDataSheet.loc[:,"Price"]
+            priceNow = currentVals[placeIn]
+            stockRNTable = pandas.read_csv("/home/pi/Documents/Background/" + stock + "/" + stock + ".csv")
+            stockArray = stockRNTable.loc[:,"0"]
+            shutil.rmtree("/home/pi/Documents/Background/" + stock + "/")
+            try:
+                os.mkdir("/home/pi/Documents/Background/" + stock + "/")
+            except:
+                pass
+            newStockPrices = numpy.append(stockArray, priceNow)
+            data_frame = pandas.DataFrame(data=newStockPrices)
+            data_frame.to_csv("/home/pi/Documents/Background/" + stock + "/" + stock + ".csv")
+            for g in range(len(splitGuys)):
+                stockFirst = splitGuys[g].split(";")
+                stock = stockFirst[0]
+                position = stockFirst[1].split(",")
+                sheetNumber = position[0]
+                placeIn = int(position[1])
+                currentDataSheet = pandas.read_csv("/home/pi/Downloads/stockData - Sheet" + sheetNumber + ".csv")
+                currentVals = currentDataSheet.loc[:,"Price"]
+                priceNow = currentVals[placeIn]
+                stockRNTable = pandas.read_csv("/home/pi/Documents/Background/" + stock + "/" + stock + ".csv")
+                stockArray = stockRNTable.loc[:,"0"]
+                shutil.rmtree("/home/pi/Documents/Background/" + stock + "/")
+                try:
+                    os.mkdir("/home/pi/Documents/Background/" + stock + "/")
+                except:
+                    pass
+                newStockPrices = numpy.append(stockArray, priceNow)
+                data_frame = pandas.DataFrame(data=newStockPrices)
+                data_frame.to_csv("/home/pi/Documents/Background/" + stock + "/" + stock + ".csv")
+    try:
+        shutil.rmtree("/home/pi/Downloads/")
+    except:
+        pass
+    time.sleep(300)
