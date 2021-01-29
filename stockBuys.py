@@ -1,24 +1,35 @@
 #Try so that in the case of failure the higher level program will continue to run
 try:
 #import tools that will be used
-    import pandas, webbrowser, os.path, time, shutil, numpy, csv, traceback, sys
+    import pandas, webbrowser, os.path, time, shutil, numpy, csv, traceback, sys, smtplib
 #Recieve date so that data can be downloaded
     from datetime import date
     currentDay = str(date.today())
     yearString = str(int(currentDay[:4]) - 1)
     pastDay = yearString[:] + currentDay[4:]
-#URL's for the sheets with current stock data, should be google sheets csv download
-    sheet1 = 
-    sheet2 = 
-    sheet3 = 
-    sheet4 = 
-    sheet5 = 
+#URL's for the sheets with current stock data
+    sheet1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=0&single=true&output=csv"
+    sheet2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=1599939664&single=true&output=csv"
+    sheet3 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=1197833442&single=true&output=csv"
+    sheet4 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=1637827314&single=true&output=csv"
+    sheet5 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=1414740708&single=true&output=csv"
     sheets = [sheet1, sheet2, sheet3, sheet4, sheet5]
     sheetOrder = [4, 2, 5, 1, 3]
-#Create empty variables
     buyGuys = ""
     failedStocks = ""
     buyGuysO = ""
+#Get user and pword from txt file for security
+    text_file_user = open("/home/pi/Documents/username.txt", "r")
+    sender_addressPre = text_file_user.readlines()
+    sender_address = sender_addressPre[0].split()
+    sender_address = sender_address[0]
+    text_file_user.close()
+    text_file_pword = open("/home/pi/Documents/password.txt", "r")
+    account_passwordPre = text_file_pword.readlines()
+    account_password = account_passwordPre[0].split()
+    account_password = account_password[0]
+    text_file_pword.close()
+    receiver_address = sender_address
 #Cycle through the sheets
     for o in sheetOrder:
         try:
@@ -52,12 +63,7 @@ try:
         try:
             spyData = pandas.read_csv("/home/pi/Downloads/HistoricalQuotes.csv")
             spyCloseArray = spyData.loc[:," Close/Last"]
-#All email blocks looking like this are to inform me of some happening in the code
         except:
-            import smtplib
-            sender_address = 
-            receiver_address = 
-            account_password = 
             subject = "SPY Failure"
             body = "Spy download failed on pass " + str(o)
             smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
@@ -82,9 +88,6 @@ try:
             stockNames1 = pandas.read_csv(sheetNumber)
             stockNames = stockNames1.loc[:,"Ticker"]
         except:
-            sender_address = 
-            receiver_address = 
-            account_password = 
             subject = "Sheet Failure"
             body = "Current data download failed on pass " + str(o)
             smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
@@ -109,11 +112,7 @@ try:
         dailyIncrease = currentVals[0] - dayVal
         spyDailyGrowth = dailyIncrease/dayVal
 #Inform me through email if spy growth has been 0
-        if (spyDailyGrowth == 0) and o == sheetOrder(0):
-            import smtplib
-            sender_address = 
-            receiver_address = 
-            account_password = 
+        if (spyDailyGrowth == 0) and o == sheetOrder[0]:
             subject = "Somethings Fishy"
             body = "Daily growth of spy is zero, google sheet probably didn't update."
             smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
@@ -291,10 +290,6 @@ try:
                     pass
 #Send an early email if on the third run of the loop
                 if o == sheetOrder[2] or o == sheetOrder[3]:
-                    import smtplib
-                    sender_address = 
-                    receiver_address = 
-                    account_password =  
                     subject = "Preliminary Stocks"
                     earlyGuys = ""
                     failedEarly = ""
@@ -327,10 +322,6 @@ except Exception as e:
     line = exc_traceback.tb_lineno
     print(str(line))
     try:
-        import smtplib
-        sender_address = 
-        receiver_address = 
-        account_password = 
         subject = "Something Went Wrong"
         body = "Something went wrong in the overall code. Try to diagnose. " + str(e) + ". Line " + str(line)
         smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
@@ -347,10 +338,6 @@ except Exception as e:
     pass
 #Send email at end with all stocks
 try:
-    import smtplib
-    sender_address = 
-    receiver_address = 
-    account_password =  
     subject = "Todays Stocks"
     buyGuys = buyGuys.strip() + ". "
     failedStocks = failedStocks.strip()
