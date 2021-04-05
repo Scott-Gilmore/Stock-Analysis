@@ -1,7 +1,8 @@
 import time, datetime, webbrowser, pandas, smtplib, shutil, os.path, numpy
 from importlib import reload
-import stockBuys
+import stockBuysV2
 import wsbScraper
+import stockAnalysis
 #All the sheets which are used for analysis
 sheet1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=0&single=true&output=csv"
 sheet2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROGz7o6U1zLmzORxJg3dTSWRPF6FmSWkQvMIrxeznqQEVMebvWPuUUL21MRKsEuYIDSHtxasb_r8aF/pub?gid=1599939664&single=true&output=csv"
@@ -28,26 +29,32 @@ while True:
     minute = timeNow.tm_min
     day = datetime.datetime.today().weekday()
     #If the hours and minutes fall in this window run the program
-    if hour == 12 and minute > 25 and day < 5:
+    if hour == 12 and minute > 45 and day < 5:
+        #Remove previously saved data if still there
+        reload(stockAnalysis)
+        try:
+            shutil.rmtree("/home/pi/Documents/Background/")
+            os.mkdir("/home/pi/Documents/Background/")
+        except:
+            pass
         #EMail that it started
         subject = "Started Effectively"
-        body = "Background stock program started"
+        body = "Background stock program started. Previous stock data:\n" + stockAnalysis.message
         smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
         smtp_server.login(sender_address, account_password)
         message = f"Subject: {subject}\n\n{body}"
         smtp_server.sendmail(sender_address, receiver_address, message)
         smtp_server.close()
         #Run stock program
-        reload(stockBuys)
+        reload(stockBuysV2)
         try:
             reload(wsbScraper)
         except:
             pass
         time.sleep(1000)
     #pauses program      
-    boughtedGuys = stockBuys.buyGuysO
+    boughtedGuys = stockBuysV2.buyGuysO
     boughtGuys = boughtedGuys.strip(" ")
-    #boughtGuys = "MSFT;1,1 AAPL;1,2"
     if hour > 6 and hour < 12:
 #Early processing of string
         splitGuys = boughtGuys.split()
@@ -101,8 +108,6 @@ while True:
                 newStockPrices = numpy.append(stockArray, priceNow)
                 data_frame = pandas.DataFrame(data=newStockPrices)
                 data_frame.to_csv("/home/pi/Documents/Background/" + stock + "/" + stock + ".csv")
-    if hour == 8 and minute < 6:
-        reload(wsbScraper)
     try:
         shutil.rmtree("/home/pi/Downloads/")
     except:
